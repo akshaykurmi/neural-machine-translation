@@ -154,6 +154,7 @@ def upload_to_gcs(data_directory, prefix, bucket_name):
 
 
 def download_from_gcs(download_directory, bucket_name):
+    os.makedirs(download_directory, exist_ok=True)
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
     for blob in bucket.list_blobs():
