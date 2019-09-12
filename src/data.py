@@ -147,4 +147,4 @@ def download_from_gcs(download_directory, bucket_name):
         print(f"Downloading {blob.name}")
         f_name = os.path.join(download_directory, blob.name)
         if not os.path.exists(f_name):
-            blob.download_to_filename()
+            blob.download_to_filename(f_name)
