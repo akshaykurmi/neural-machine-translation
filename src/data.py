@@ -40,6 +40,19 @@ class EuroParlEnFr:
         f.extractall(path=self.data_directory)
 
 
+class ManyThingsEnFr:
+    URL = "http://www.manythings.org/anki/fra-eng.zip"
+    FILE = "manythingsenfr.tsv"
+
+    def __init__(self, data_directory):
+        self.data_directory = data_directory
+
+    def load(self):
+        if not os.path.exists(os.path.join(self.data_directory, self.FILE)):
+            raise FileNotFoundError(f"{self.FILE} unavailable. Download file from {self.URL}")
+        return pd.read_csv(os.path.join(self.data_directory, self.FILE), sep="\t", names=["en", "fr"])
+
+
 def preprocess_sentence(s):
     s = s.lower()
     s = re.sub(f'([{string.punctuation}])', r' \1 ', s)
