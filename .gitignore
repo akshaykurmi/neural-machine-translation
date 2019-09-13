@@ -6,5 +6,6 @@ __pycache__
 
 data
 logs
+checkpoints
 nmt-gcs-credentials.json
 
