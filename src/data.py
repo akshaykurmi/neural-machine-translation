@@ -3,6 +3,7 @@ import os
 import io
 import json
 import string
+import shutil
 import tarfile
 import pickle as pkl
 from urllib.request import urlopen
@@ -140,25 +141,28 @@ def load_datasets(batch_size, data_directory, prefix):
     return dataset_train, dataset_val
 
 
-def upload_to_gcs(data_directory, prefix, bucket_name):
-    files = [f"{prefix}.{f}" for f in ["metadata.json", "tfrecord", "en_tokenizer.pkl", "fr_tokenizer.pkl"]]
+def zip_directory_and_upload_to_gcs(directory, bucket_name, blob_name):
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
-    for f_name in files:
-        blob = bucket.blob(f_name)
-        if not blob.exists():
-            print(f"Uploading {f_name}")
-            url = blob.create_resumable_upload_session()
-            with open(os.path.join(data_directory, f_name), "rb") as f:
-                requests.put(url, data=f, headers={"Content-type": 'application/octet-stream'})
+    blob = bucket.blob(blob_name)
+    blob.delete() if blob.exists() else None
+    name, ext = os.path.splitext(blob_name)
+    shutil.make_archive(name, ext[1:], directory)
+    url = blob.create_resumable_upload_session()
+    print(f"Uploading {blob_name} to {bucket_name} ...")
+    with open(blob_name, "rb") as f:
+        requests.put(url, data=f, headers={"Content-type": 'application/octet-stream'})
+    os.remove(blob_name)
 
 
-def download_from_gcs(download_directory, bucket_name):
-    os.makedirs(download_directory, exist_ok=True)
+def download_from_gcs_and_unzip_directory(directory, bucket_name, blob_name):
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
-    for blob in bucket.list_blobs():
-        print(f"Downloading {blob.name}")
-        f_name = os.path.join(download_directory, blob.name)
-        if not os.path.exists(f_name):
-            blob.download_to_filename(f_name)
+    blob = bucket.blob(blob_name)
+    if not blob.exists():
+        print(f"Blob {blob_name} not found in {bucket_name}.")
+        return
+    print(f"Downloading {blob_name} from {bucket_name} ...")
+    blob.download_to_filename(blob_name)
+    shutil.unpack_archive(blob_name, directory)
+    os.remove(blob_name)
